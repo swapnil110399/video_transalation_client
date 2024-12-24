@@ -25,7 +25,6 @@ This project implements a scalable video translation service with asynchronous p
 - Intelligent polling with progressive delay
 - Job cancellation support
 - Comprehensive error handling
-- Thread-safe job management
 - Configurable timeout and retry mechanisms
 - Detailed logging system
 - Integration testing support
