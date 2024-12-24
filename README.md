@@ -8,10 +8,8 @@ A robust asynchronous video translation service implementation featuring a FastA
 - [System Architecture](#system-architecture)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Running Modes](#running-modes)
 - [Components](#components)
-  - [Server](#server)
-  - [Client](#client)
-  - [Integration](#integration)
 - [API Documentation](#api-documentation)
 - [Testing](#testing)
 - [Error Handling](#error-handling)
@@ -19,12 +17,13 @@ A robust asynchronous video translation service implementation featuring a FastA
 
 ## Overview
 
-This project implements a scalable video translation service with asynchronous processing capabilities. It consists of a FastAPI-based server for handling translation jobs and a sophisticated client library that manages job submission and status monitoring.
+This project implements a scalable video translation service with asynchronous processing capabilities. It consists of a FastAPI-based server for handling translation jobs and a sophisticated client library that manages job submission, status monitoring, and job cancellation.
 
 ## Features
 
 - Asynchronous job processing
 - Intelligent polling with progressive delay
+- Job cancellation support
 - Comprehensive error handling
 - Thread-safe job management
 - Configurable timeout and retry mechanisms
@@ -36,13 +35,13 @@ This project implements a scalable video translation service with asynchronous p
 The system is composed of two main components:
 
 1. **Translation Server**: A FastAPI application managing translation jobs
-2. **Client Library**: An async client with intelligent polling mechanisms
+2. **Client Library**: An async client with intelligent polling mechanisms and cancellation support
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/video-translation-service.git
+git clone https://github.com/swapnil110399/video_transalation_client.git
 
 # Install dependencies
 pip install -r requirements.txt
@@ -67,9 +66,7 @@ python demo.py
 python main.py
 ```
 
-Note: If you run `demo.py`, it will start its own server instance, so make sure you're not running the server separately in this case.
-
-2. Use the client:
+3. Use the client:
 ```python
 import asyncio
 from client import VideoTranslationClient
@@ -80,7 +77,14 @@ async def main():
         response = await client.start_translation("en", "es")
         job_id = response["job_id"]
         
-        # Wait for completion
+        # Cancel job if needed
+        try:
+            cancel_result = await client.cancel_translation(job_id)
+            print(f"Job cancelled: {cancel_result}")
+        except TranslationError as e:
+            print(f"Failed to cancel job: {e}")
+        
+        # Or wait for completion
         result = await client.wait_for_completion(job_id)
         print(f"Translation completed: {result}")
 
@@ -108,76 +112,6 @@ The application supports different running modes:
 
 Choose the appropriate mode based on your needs. Remember that you should not run multiple servers on the same port (8000 by default).
 
-## Components
-
-### Server (app.py)
-
-The server component provides a robust translation job processing system with the following key features:
-
-- Thread-safe job storage
-- Configurable processing times
-- Simulated error rates for testing
-- Comprehensive logging
-
-#### Key Classes:
-
-1. **TranslationJob**
-```python
-class TranslationJob(BaseModel):
-    job_id: str
-    status: str
-    source_language: str
-    target_language: str
-    created_at: datetime
-    error_message: Optional[str] = None
-```
-
-2. **TranslationServer**
-```python
-class TranslationServer:
-    def __init__(self, error_rate=0.05):
-        self.jobs = {}
-        self.error_rate = error_rate
-        self._lock = threading.Lock()
-```
-
-### Client (client.py)
-
-The client library provides a sophisticated interface for interacting with the translation service:
-
-#### Key Classes:
-
-1. **TranslationConfig**
-```python
-class TranslationConfig:
-    def __init__(
-        self,
-        base_timeout=30,
-        min_delay=0.5,
-        max_delay=3.0,
-        progressive_delay=True
-    ):
-        self.base_timeout = base_timeout
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-        self.progressive_delay = progressive_delay
-```
-
-2. **VideoTranslationClient**
-```python
-class VideoTranslationClient:
-    async def start_translation(
-        self,
-        source_lang: str,
-        target_lang: str
-    ) -> Dict[str, Any]:
-        # Start a new translation job
-        pass
-
-    async def wait_for_completion(self, job_id: str) -> Dict[str, Any]:
-        # Wait for job completion with intelligent polling
-        pass
-```
 
 ## API Documentation
 
@@ -219,6 +153,22 @@ Response:
 }
 ```
 
+3. **Cancel Job**
+```
+POST /job/{job_id}/cancel
+```
+Response:
+```json
+{
+    "job_id": "string",
+    "status": "cancelled",
+    "source_language": "string",
+    "target_language": "string",
+    "created_at": "datetime",
+    "error_message": "Job cancelled by user request"
+}
+```
+
 ### Client API
 
 1. **Initialize Client**
@@ -245,6 +195,11 @@ job_id = response["job_id"]
 result = await client.wait_for_completion(job_id)
 ```
 
+4. **Cancel Job**
+```python
+result = await client.cancel_translation(job_id)
+```
+
 ## Testing
 
 The project includes integration tests using pytest:
@@ -258,19 +213,6 @@ Key test features:
 - Client workflow testing
 - Error condition validation
 - Async test support
-
-## Error Handling
-
-The system implements comprehensive error handling:
-
-1. **Client Errors**
-- TranslationError: Custom exception for translation failures
-- TimeoutError: When jobs exceed configured timeout
-- aiohttp.ClientError: For network-related issues
-
-2. **Server Errors**
-- HTTPException: For API-level errors
-- RuntimeError: For internal server issues
 
 ## Configuration
 

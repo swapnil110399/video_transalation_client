@@ -34,7 +34,8 @@ async def main():
         1. Initializes client with async context manager
         2. Starts a sample translation job
         3. Waits for completion with status monitoring
-        4. Handles all potential error conditions
+        4. Shows job cancellation
+        5. Handles all potential error conditions
 
     :raises:
         TranslationError: When translation processing fails
@@ -45,11 +46,25 @@ async def main():
         try:
             # Start a new translation job
             response = await client.start_translation("en", "es")
-            print(f"Started translation job: {response.get('job_id')}")
+            job_id = response["job_id"]
+            print(f"Started translation job: {job_id}")
 
-            # Wait for job completion and get final result
-            result = await client.wait_for_completion(response["job_id"])
-            print(f"Final status: {result}")
+            # Start another job that we'll cancel
+            response2 = await client.start_translation("en", "fr")
+            job_id2 = response2["job_id"]
+            print(f"Started second translation job: {job_id2}")
+
+            # Wait briefly then cancel the second job
+            await asyncio.sleep(2)
+            try:
+                cancel_result = await client.cancel_translation(job_id2)
+                print(f"Cancelled second job: {cancel_result}")
+            except TranslationError as e:
+                print(f"Failed to cancel job: {e}")
+
+            # Wait for the first job to complete
+            result = await client.wait_for_completion(job_id)
+            print(f"First job final status: {result}")
 
         except TranslationError as e:
             # Handle translation-specific errors

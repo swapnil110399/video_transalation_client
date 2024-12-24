@@ -156,6 +156,21 @@ class TranslationServer:
         """
         return self.jobs.get(job_id)
 
+    def cancel_job(self, job_id: str) -> Optional[TranslationJob]:
+        """
+        Cancel a running translation job.
+
+        :param job_id: Identifier of the job to cancel
+        :returns: Updated TranslationJob if found and cancelled, None otherwise
+        """
+        job = self.get_job(job_id)
+        if job and job.status == "processing":
+            job.status = "cancelled"
+            job.error_message = "Job cancelled by user request"
+            server_logger.info(f"Job {job_id} cancelled")
+            return job
+        return None
+
 
 # Create singleton server instance
 server = TranslationServer()
@@ -214,4 +229,23 @@ async def get_job_status(job_id: str):
     job = server.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@app.post("/job/{job_id}/cancel")
+async def cancel_job(job_id: str):
+    """
+    Endpoint to cancel a running translation job.
+
+    :param job_id: Identifier of the job to cancel
+    :returns: Updated job status
+    :raises:
+        HTTPException: If job is not found or cannot be cancelled
+    """
+    server_logger.info(f"Attempting to cancel job: {job_id}")
+    job = server.cancel_job(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=404, detail="Job not found or already completed/cancelled"
+        )
     return job

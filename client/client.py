@@ -239,3 +239,22 @@ class VideoTranslationClient:
         raise TimeoutError(
             f"Job {job_id} did not complete within {self.config.base_timeout} seconds"
         )
+
+    async def cancel_translation(self, job_id: str) -> Dict[str, Any]:
+        """
+        Cancel a running translation job.
+
+        :param job_id: The ID of the job to cancel
+        :returns: API response containing cancelled job status
+        :raises:
+            TranslationError: If cancellation fails
+            aiohttp.ClientError: For HTTP-related errors
+        """
+        try:
+            async with self.session.post(
+                f"{self.base_url}/job/{job_id}/cancel", timeout=5
+            ) as response:
+                response.raise_for_status()
+                return await response.json()
+        except aiohttp.ClientError as e:
+            raise TranslationError(f"Failed to cancel job: {e}") from e
