@@ -1,49 +1,81 @@
-# Video Translation Client Library
+# Video Translation Service
+
+A robust asynchronous video translation service implementation featuring a FastAPI server and an intelligent client with advanced polling mechanisms.
+
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Components](#components)
+  - [Server](#server)
+  - [Client](#client)
+  - [Integration](#integration)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Error Handling](#error-handling)
+- [Configuration](#configuration)
 
 ## Overview
-A robust, production-ready client library for interacting with video translation services, designed with developer experience and reliability in mind. This library provides an intuitive interface for managing video translation jobs with smart polling, error handling, and configurable behavior.
 
-## 🌟 Key Features
+This project implements a scalable video translation service with asynchronous processing capabilities. It consists of a FastAPI-based server for handling translation jobs and a sophisticated client library that manages job submission and status monitoring.
 
-### Smart Polling with Progressive Delays
-- Implements an intelligent polling strategy that automatically adjusts request frequency
-- Starts with quick checks and progressively increases intervals to reduce server load
-- Resets to quick polling when status changes are detected
-- Configurable minimum and maximum delays
+## Features
 
-### Robust Error Handling
-- Custom `TranslationError` class for clear error identification
-- Comprehensive timeout handling
-- Detailed error messages and logging
-- HTTP error management and retry logic
+- Asynchronous job processing
+- Intelligent polling with progressive delay
+- Comprehensive error handling
+- Thread-safe job management
+- Configurable timeout and retry mechanisms
+- Detailed logging system
+- Integration testing support
 
-### Async/Await Support
-- Built on modern async/await patterns
-- Efficient handling of concurrent requests
-- Non-blocking operations for better performance
+## System Architecture
 
-### Comprehensive Logging
-- Detailed logging at multiple levels (INFO, DEBUG, ERROR)
-- Transaction tracing through unique job IDs
-- Performance monitoring capabilities
+The system is composed of two main components:
 
-## 🚀 Quick Start
+1. **Translation Server**: A FastAPI application managing translation jobs
+2. **Client Library**: An async client with intelligent polling mechanisms
 
-### Installation
+## Installation
+
 ```bash
-pip install video-translation-client
+# Clone the repository
+git clone https://github.com/yourusername/video-translation-service.git
 
-# Required dependencies
-pip install aiohttp fastapi uvicorn
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### Basic Usage
+## Quick Start
+
+The application consists of multiple components that need to be started in the correct order:
+
+1. First, start the server:
+```python
+# Start the FastAPI server independently
+uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+2. Then you can either run the demo (which includes both server and client) or the main application:
+```python
+# Run the demo (includes both server and client)
+python demo.py
+
+# OR run the main application
+python main.py
+```
+
+Note: If you run `demo.py`, it will start its own server instance, so make sure you're not running the server separately in this case.
+
+2. Use the client:
 ```python
 import asyncio
-from video_translation_client import VideoTranslationClient
+from client import VideoTranslationClient
 
-async def translate_video():
-    async with VideoTranslationClient("http://api.example.com") as client:
+async def main():
+    async with VideoTranslationClient("http://localhost:8000") as client:
         # Start translation
         response = await client.start_translation("en", "es")
         job_id = response["job_id"]
@@ -52,187 +84,201 @@ async def translate_video():
         result = await client.wait_for_completion(job_id)
         print(f"Translation completed: {result}")
 
-# Run the async function
-asyncio.run(translate_video())
+asyncio.run(main())
 ```
 
-## ⚙️ Configuration Options
+## Running Modes
 
-### TranslationConfig
-Customize the client behavior using the `TranslationConfig` class:
+The application supports different running modes:
 
+1. **Standalone Server** (`app.py`):
+   - Runs only the FastAPI server
+   - Best for development and when you want to run client separately
+   - Use this when you want to test with custom clients
+
+2. **Demo Mode** (`demo.py`):
+   - Runs both server and client in a coordinated manner
+   - Includes a complete integration example
+   - Useful for testing and demonstration purposes
+
+3. **Main Application** (`main.py`):
+   - Runs a FastAPI server with a translation demo endpoint
+   - Includes example client usage
+   - Best for production deployment
+
+Choose the appropriate mode based on your needs. Remember that you should not run multiple servers on the same port (8000 by default).
+
+## Components
+
+### Server (app.py)
+
+The server component provides a robust translation job processing system with the following key features:
+
+- Thread-safe job storage
+- Configurable processing times
+- Simulated error rates for testing
+- Comprehensive logging
+
+#### Key Classes:
+
+1. **TranslationJob**
 ```python
-from video_translation_client import TranslationConfig, VideoTranslationClient
+class TranslationJob(BaseModel):
+    job_id: str
+    status: str
+    source_language: str
+    target_language: str
+    created_at: datetime
+    error_message: Optional[str] = None
+```
 
-config = TranslationConfig(
-    base_timeout=30,      # Maximum time to wait for job completion
-    min_delay=0.5,        # Minimum delay between status checks
-    max_delay=3.0,        # Maximum delay between status checks
-    progressive_delay=True # Enable/disable progressive delay
+2. **TranslationServer**
+```python
+class TranslationServer:
+    def __init__(self, error_rate=0.05):
+        self.jobs = {}
+        self.error_rate = error_rate
+        self._lock = threading.Lock()
+```
+
+### Client (client.py)
+
+The client library provides a sophisticated interface for interacting with the translation service:
+
+#### Key Classes:
+
+1. **TranslationConfig**
+```python
+class TranslationConfig:
+    def __init__(
+        self,
+        base_timeout=30,
+        min_delay=0.5,
+        max_delay=3.0,
+        progressive_delay=True
+    ):
+        self.base_timeout = base_timeout
+        self.min_delay = min_delay
+        self.max_delay = max_delay
+        self.progressive_delay = progressive_delay
+```
+
+2. **VideoTranslationClient**
+```python
+class VideoTranslationClient:
+    async def start_translation(
+        self,
+        source_lang: str,
+        target_lang: str
+    ) -> Dict[str, Any]:
+        # Start a new translation job
+        pass
+
+    async def wait_for_completion(self, job_id: str) -> Dict[str, Any]:
+        # Wait for job completion with intelligent polling
+        pass
+```
+
+## API Documentation
+
+### Server Endpoints
+
+1. **Start Translation**
+```
+POST /translate
+```
+Request Body:
+```json
+{
+    "job_id": "string",
+    "source_language": "string",
+    "target_language": "string"
+}
+```
+Response:
+```json
+{
+    "message": "Translation started",
+    "job_id": "string"
+}
+```
+
+2. **Get Job Status**
+```
+GET /job/{job_id}
+```
+Response:
+```json
+{
+    "job_id": "string",
+    "status": "string",
+    "source_language": "string",
+    "target_language": "string",
+    "created_at": "datetime",
+    "error_message": "string"
+}
+```
+
+### Client API
+
+1. **Initialize Client**
+```python
+client = VideoTranslationClient(
+    base_url="http://localhost:8000",
+    config=TranslationConfig(
+        base_timeout=30,
+        min_delay=0.5,
+        max_delay=3.0,
+        progressive_delay=True
+    )
 )
-
-client = VideoTranslationClient("http://api.example.com", config)
 ```
 
-## 🔍 Detailed Feature Documentation
+2. **Start Translation**
+```python
+response = await client.start_translation("en", "es")
+job_id = response["job_id"]
+```
 
-### Progressive Polling Strategy
-The library implements a smart polling strategy that:
-1. Starts with frequent checks (min_delay)
-2. Gradually increases delay if status remains unchanged
-3. Resets to quick polling when status changes
-4. Caps at max_delay to ensure responsiveness
+3. **Monitor Job**
+```python
+result = await client.wait_for_completion(job_id)
+```
+
+## Testing
+
+The project includes integration tests using pytest:
 
 ```python
-# Example configuration for different scenarios
-# Quick updates priority
-config_quick = TranslationConfig(min_delay=0.2, max_delay=1.0)
-
-# Server-friendly configuration
-config_efficient = TranslationConfig(min_delay=1.0, max_delay=5.0)
+pytest test_integration.py
 ```
 
-### Error Handling
-The library provides comprehensive error handling:
+Key test features:
+- Automated server startup
+- Client workflow testing
+- Error condition validation
+- Async test support
 
-```python
-try:
-    result = await client.wait_for_completion(job_id)
-except TranslationError as e:
-    print(f"Translation failed: {e}")
-except TimeoutError as e:
-    print(f"Operation timed out: {e}")
-except aiohttp.ClientError as e:
-    print(f"Network error: {e}")
-```
+## Error Handling
 
-### Logging Integration
-Built-in logging with customizable levels:
+The system implements comprehensive error handling:
 
-```python
-import logging
+1. **Client Errors**
+- TranslationError: Custom exception for translation failures
+- TimeoutError: When jobs exceed configured timeout
+- aiohttp.ClientError: For network-related issues
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("video_translation_client")
-```
+2. **Server Errors**
+- HTTPException: For API-level errors
+- RuntimeError: For internal server issues
 
-## 🔧 Advanced Usage
+## Configuration
 
-### Custom Session Management
-```python
-async with aiohttp.ClientSession() as session:
-    client = VideoTranslationClient("http://api.example.com", session=session)
-    # Use client with custom session
-```
+### Server Configuration
+- Error rate simulation: Configurable probability of random errors
+- Processing time simulation: Random delays between 5-15 seconds
 
-### Status Monitoring
-```python
-async def monitor_translation(client, job_id):
-    while True:
-        status = await client.get_status(job_id)
-        if status["status"] in ["completed", "error"]:
-            break
-        print(f"Current status: {status}")
-        await asyncio.sleep(1)
-```
-
-## 🧪 Testing
-
-The library comes with comprehensive integration tests:
-
-```bash
-# Run the test suite
-pytest test_integration.py -v
-```
-
-Example test:
-```python
-@pytest.mark.asyncio
-async def test_translation_flow():
-    async with VideoTranslationClient("http://localhost:8000") as client:
-        response = await client.start_translation("en", "es")
-        result = await client.wait_for_completion(response["job_id"])
-        assert result["status"] == "completed"
-```
-
-## 📊 Performance Considerations
-
-### Resource Management
-- Uses connection pooling for efficient HTTP connections
-- Implements proper resource cleanup with context managers
-- Configurable timeouts to prevent resource leaks
-
-### Server Load
-The progressive delay strategy helps manage server load by:
-- Reducing unnecessary polling
-- Adapting to server response patterns
-- Providing configurable limits
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guide for details.
-
-1. Fork the repository
-2. Create your feature branch
-3. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🔗 Related Projects
-
-- [Video Translation Server](link-to-server)
-- [Video Translation CLI](link-to-cli)
-- [Video Translation Dashboard](link-to-dashboard)
-
-## 🎯 Design Philosophy
-
-This library was built with the following principles in mind:
-
-1. **Developer Experience First**
-   - Intuitive API design
-   - Comprehensive documentation
-   - Clear error messages
-
-2. **Production Readiness**
-   - Robust error handling
-   - Performance optimization
-   - Resource management
-
-3. **Flexibility**
-   - Configurable behavior
-   - Extensible design
-   - Modern async support
-
-4. **Reliability**
-   - Smart retry logic
-   - Timeout handling
-   - Comprehensive logging
-
-## 🤔 FAQs
-
-**Q: Why use progressive delays?**
-A: Progressive delays help balance responsiveness with server load. It starts with quick checks for active jobs while preventing unnecessary load during longer operations.
-
-**Q: How does error handling work?**
-A: The library provides custom exceptions and detailed error messages. It handles network errors, timeouts, and service-specific errors with appropriate retry logic.
-
-**Q: Can I customize the polling behavior?**
-A: Yes, through the `TranslationConfig` class you can adjust minimum and maximum delays, timeout duration, and enable/disable progressive delay.
-
-## 📞 Support
-
-For support, please:
-1. Check the documentation
-2. Look through existing issues
-3. Create a new issue if needed
-4. Contact support@example.com
-
-## 🔄 Version History
-
-- 1.0.0: Initial release
-- 1.1.0: Added progressive delay feature
-- 1.2.0: Enhanced error handling
-- 1.3.0: Improved logging
+### Client Configuration
+- Base timeout: Maximum wait time for job completion
+- Min/Max delay: Bounds for polling intervals
+- Progressive delay: Enable/disable adaptive polling
