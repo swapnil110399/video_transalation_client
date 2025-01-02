@@ -20,8 +20,28 @@ An improved version focusing on reliability and real-time updates:
 
 ## Why the New Approach?
 
-The WebSocket + DLQ implementation better serves Heygen's video translation needs by:
+The WebSocket + DLQ implementation better serves video translation needs by:
 - Eliminating polling overhead with instant status updates
 - Ensuring no failed jobs are lost through DLQ
 - Providing better scalability for multiple concurrent translations
 - Improving user experience with real-time feedback
+
+## Try it out
+
+To try either approach:
+
+### For Polling-Based Implementation
+```bash
+cd v1-polling
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### For WebSocket + DLQ Implementation
+```bash
+cd v2-websocket-dlq
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
